@@ -15,25 +15,26 @@
  */
 package org.apache.ibatis.scripting.xmltags;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.StringTokenizer;
-
 import org.apache.ibatis.session.Configuration;
 
+import java.util.*;
+
 /**
- * @author Clinton Begin
+ * trim节点
  */
 public class TrimSqlNode implements SqlNode {
 
+  /** trim节点 */
   private final SqlNode contents;
+  /** 添加的前缀 */
   private final String prefix;
+  /** 添加的后缀 */
   private final String suffix;
+  /** 待移除的前缀，多个用|分割 */
   private final List<String> prefixesToOverride;
+  /** 待移除的后缀，多个用|分割 */
   private final List<String> suffixesToOverride;
+  /** 配置 */
   private final Configuration configuration;
 
   public TrimSqlNode(Configuration configuration, SqlNode contents, String prefix, String prefixesToOverride, String suffix, String suffixesToOverride) {
@@ -51,8 +52,11 @@ public class TrimSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    // 新建过滤器的动态文本
     FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
+    // 解析所有的sql
     boolean result = contents.apply(filteredDynamicContext);
+    // 过滤器文本解析
     filteredDynamicContext.applyAll();
     return result;
   }
@@ -69,10 +73,17 @@ public class TrimSqlNode implements SqlNode {
     return Collections.emptyList();
   }
 
+  /**
+   * 过滤器动态文本
+   */
   private class FilteredDynamicContext extends DynamicContext {
+    /** 原始动态文本 */
     private DynamicContext delegate;
-    private boolean prefixApplied;
+    /** 后缀处理标记 */
     private boolean suffixApplied;
+    /** 前缀处理标记 */
+    private boolean prefixApplied;
+    /** sql追加 */
     private StringBuilder sqlBuffer;
 
     public FilteredDynamicContext(DynamicContext delegate) {
@@ -84,12 +95,15 @@ public class TrimSqlNode implements SqlNode {
     }
 
     public void applyAll() {
+      // 初始化sql
       sqlBuffer = new StringBuilder(sqlBuffer.toString().trim());
       String trimmedUppercaseSql = sqlBuffer.toString().toUpperCase(Locale.ENGLISH);
+      // 只要sql长度大于0，处理前缀和后缀
       if (trimmedUppercaseSql.length() > 0) {
         applyPrefix(sqlBuffer, trimmedUppercaseSql);
         applySuffix(sqlBuffer, trimmedUppercaseSql);
       }
+      // 原始文本追加sql
       delegate.appendSql(sqlBuffer.toString());
     }
 
@@ -118,9 +132,14 @@ public class TrimSqlNode implements SqlNode {
       return delegate.getSql();
     }
 
+    /**
+     * 处理前缀
+     */
     private void applyPrefix(StringBuilder sql, String trimmedUppercaseSql) {
+      // 处理一次后标记失败
       if (!prefixApplied) {
         prefixApplied = true;
+        // 如果覆盖的前缀不为空，移除以前缀开头的字符
         if (prefixesToOverride != null) {
           for (String toRemove : prefixesToOverride) {
             if (trimmedUppercaseSql.startsWith(toRemove)) {
@@ -129,6 +148,7 @@ public class TrimSqlNode implements SqlNode {
             }
           }
         }
+        // 如果前缀不为空，追加前缀
         if (prefix != null) {
           sql.insert(0, " ");
           sql.insert(0, prefix);
@@ -136,9 +156,14 @@ public class TrimSqlNode implements SqlNode {
       }
     }
 
+    /**
+     * 处理后缀
+     */
     private void applySuffix(StringBuilder sql, String trimmedUppercaseSql) {
+      // 处理一次后标记失败
       if (!suffixApplied) {
         suffixApplied = true;
+        // 如果覆盖的后缀不为空，移除以后缀结束的字符
         if (suffixesToOverride != null) {
           for (String toRemove : suffixesToOverride) {
             if (trimmedUppercaseSql.endsWith(toRemove) || trimmedUppercaseSql.endsWith(toRemove.trim())) {
@@ -149,6 +174,7 @@ public class TrimSqlNode implements SqlNode {
             }
           }
         }
+        // 如果后缀不为空，追加后缀
         if (suffix != null) {
           sql.append(" ");
           sql.append(suffix);

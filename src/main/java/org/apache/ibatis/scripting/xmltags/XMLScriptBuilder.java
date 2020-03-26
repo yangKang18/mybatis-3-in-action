@@ -15,11 +15,6 @@
  */
 package org.apache.ibatis.scripting.xmltags;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.builder.BaseBuilder;
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.mapping.SqlSource;
@@ -29,15 +24,24 @@ import org.apache.ibatis.session.Configuration;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * @author Clinton Begin
+ * sql构建
  */
 public class XMLScriptBuilder extends BaseBuilder {
 
-  private final XNode context;
+  /** 动态sql标记 */
   private boolean isDynamic;
+  /** 参数类型 */
   private final Class<?> parameterType;
+  /** 动态节点处理器 */
   private final Map<String, NodeHandler> nodeHandlerMap = new HashMap<>();
+  /** 整个sql节点 */
+  private final XNode context;
 
   public XMLScriptBuilder(Configuration configuration, XNode context) {
     this(configuration, context, null);
@@ -51,6 +55,9 @@ public class XMLScriptBuilder extends BaseBuilder {
   }
 
 
+  /**
+   * 初始化节点处理器
+   */
   private void initNodeHandlerMap() {
     nodeHandlerMap.put("trim", new TrimHandler());
     nodeHandlerMap.put("where", new WhereHandler());
@@ -63,37 +70,55 @@ public class XMLScriptBuilder extends BaseBuilder {
     nodeHandlerMap.put("bind", new BindHandler());
   }
 
+  /**
+   * 解析sql节点
+   */
   public SqlSource parseScriptNode() {
+    // 解析动态节点，获得一个混合节点对象
     MixedSqlNode rootSqlNode = parseDynamicTags(context);
     SqlSource sqlSource;
     if (isDynamic) {
+      // 如果是动态sql，则返回动态sql对象
       sqlSource = new DynamicSqlSource(configuration, rootSqlNode);
     } else {
+      // 否则返回静态sql对象
       sqlSource = new RawSqlSource(configuration, rootSqlNode, parameterType);
     }
     return sqlSource;
   }
 
+  /**
+   * 解析动态节点
+   */
   protected MixedSqlNode parseDynamicTags(XNode node) {
     List<SqlNode> contents = new ArrayList<>();
+    // 获取左右子节点
     NodeList children = node.getNode().getChildNodes();
     for (int i = 0; i < children.getLength(); i++) {
       XNode child = node.newXNode(children.item(i));
+      // 如果子节点的类型是文本节点
       if (child.getNode().getNodeType() == Node.CDATA_SECTION_NODE || child.getNode().getNodeType() == Node.TEXT_NODE) {
+        // 把节点的内容封装为一个文本sql节点
         String data = child.getStringBody("");
         TextSqlNode textSqlNode = new TextSqlNode(data);
+        // 如果文本sql中包含${}，则表明是动态sql
         if (textSqlNode.isDynamic()) {
           contents.add(textSqlNode);
           isDynamic = true;
         } else {
+          // 否则是静态sql节点
           contents.add(new StaticTextSqlNode(data));
         }
+
+      // 如果是其他节点，解析节点
       } else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) { // issue #628
+        // 获取节点名字，如果节点名字不存在则报错
         String nodeName = child.getNode().getNodeName();
         NodeHandler handler = nodeHandlerMap.get(nodeName);
         if (handler == null) {
           throw new BuilderException("Unknown element <" + nodeName + "> in SQL statement.");
         }
+        // 存在节点使用对应节点的处理器处理节点
         handler.handleNode(child, contents);
         isDynamic = true;
       }
@@ -119,6 +144,9 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * trim标签处理器
+   */
   private class TrimHandler implements NodeHandler {
     public TrimHandler() {
       // Prevent Synthetic Access
@@ -126,16 +154,24 @@ public class XMLScriptBuilder extends BaseBuilder {
 
     @Override
     public void handleNode(XNode nodeToHandle, List<SqlNode> targetContents) {
+      // 递归处理节点
       MixedSqlNode mixedSqlNode = parseDynamicTags(nodeToHandle);
+      // 前缀
       String prefix = nodeToHandle.getStringAttribute("prefix");
+      // 覆盖前缀
       String prefixOverrides = nodeToHandle.getStringAttribute("prefixOverrides");
+      // 后缀
       String suffix = nodeToHandle.getStringAttribute("suffix");
+      // 覆盖后缀
       String suffixOverrides = nodeToHandle.getStringAttribute("suffixOverrides");
       TrimSqlNode trim = new TrimSqlNode(configuration, mixedSqlNode, prefix, prefixOverrides, suffix, suffixOverrides);
       targetContents.add(trim);
     }
   }
 
+  /**
+   * where标签节点
+   */
   private class WhereHandler implements NodeHandler {
     public WhereHandler() {
       // Prevent Synthetic Access
@@ -149,6 +185,9 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * set标签节点
+   */
   private class SetHandler implements NodeHandler {
     public SetHandler() {
       // Prevent Synthetic Access
@@ -162,6 +201,9 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * foreach标签节点
+   */
   private class ForEachHandler implements NodeHandler {
     public ForEachHandler() {
       // Prevent Synthetic Access
@@ -181,6 +223,9 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * if标签节点
+   */
   private class IfHandler implements NodeHandler {
     public IfHandler() {
       // Prevent Synthetic Access
@@ -195,6 +240,9 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * otherwise标签节点
+   */
   private class OtherwiseHandler implements NodeHandler {
     public OtherwiseHandler() {
       // Prevent Synthetic Access
@@ -207,6 +255,9 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * choose标签节点
+   */
   private class ChooseHandler implements NodeHandler {
     public ChooseHandler() {
       // Prevent Synthetic Access

@@ -15,18 +15,6 @@
  */
 package org.apache.ibatis.session;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.function.BiFunction;
-
 import org.apache.ibatis.binding.MapperRegistry;
 import org.apache.ibatis.builder.CacheRefResolver;
 import org.apache.ibatis.builder.IncompleteElementException;
@@ -42,11 +30,7 @@ import org.apache.ibatis.cache.impl.PerpetualCache;
 import org.apache.ibatis.datasource.jndi.JndiDataSourceFactory;
 import org.apache.ibatis.datasource.pooled.PooledDataSourceFactory;
 import org.apache.ibatis.datasource.unpooled.UnpooledDataSourceFactory;
-import org.apache.ibatis.executor.BatchExecutor;
-import org.apache.ibatis.executor.CachingExecutor;
-import org.apache.ibatis.executor.Executor;
-import org.apache.ibatis.executor.ReuseExecutor;
-import org.apache.ibatis.executor.SimpleExecutor;
+import org.apache.ibatis.executor.*;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
 import org.apache.ibatis.executor.loader.ProxyFactory;
 import org.apache.ibatis.executor.loader.cglib.CglibProxyFactory;
@@ -66,13 +50,7 @@ import org.apache.ibatis.logging.log4j2.Log4j2Impl;
 import org.apache.ibatis.logging.nologging.NoLoggingImpl;
 import org.apache.ibatis.logging.slf4j.Slf4jImpl;
 import org.apache.ibatis.logging.stdout.StdOutImpl;
-import org.apache.ibatis.mapping.BoundSql;
-import org.apache.ibatis.mapping.Environment;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ParameterMap;
-import org.apache.ibatis.mapping.ResultMap;
-import org.apache.ibatis.mapping.ResultSetType;
-import org.apache.ibatis.mapping.VendorDatabaseIdProvider;
+import org.apache.ibatis.mapping.*;
 import org.apache.ibatis.parsing.XNode;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.InterceptorChain;
@@ -95,6 +73,9 @@ import org.apache.ibatis.type.TypeAliasRegistry;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
+import java.util.*;
+import java.util.function.BiFunction;
+
 /**
  * @author Clinton Begin
  */
@@ -107,6 +88,7 @@ public class Configuration {
   protected boolean mapUnderscoreToCamelCase;
   protected boolean aggressiveLazyLoading;
   protected boolean multipleResultSetsEnabled = true;
+  /** 生成key标志 */
   protected boolean useGeneratedKeys;
   protected boolean useColumnLabel = true;
   protected boolean cacheEnabled = true;
@@ -123,6 +105,7 @@ public class Configuration {
   protected Integer defaultStatementTimeout;
   protected Integer defaultFetchSize;
   protected ResultSetType defaultResultSetType;
+  /** 默认执行器类型 */
   protected ExecutorType defaultExecutorType = ExecutorType.SIMPLE;
   protected AutoMappingBehavior autoMappingBehavior = AutoMappingBehavior.PARTIAL;
   protected AutoMappingUnknownColumnBehavior autoMappingUnknownColumnBehavior = AutoMappingUnknownColumnBehavior.NONE;
@@ -135,6 +118,7 @@ public class Configuration {
   protected boolean lazyLoadingEnabled = false;
   protected ProxyFactory proxyFactory = new JavassistProxyFactory(); // #224 Using internal Javassist instead of OGNL
 
+  /** 数据库ID */
   protected String databaseId;
   /**
    * Configuration factory class.
@@ -144,33 +128,44 @@ public class Configuration {
    */
   protected Class<?> configurationFactory;
 
+  /** mapper容器 */
   protected final MapperRegistry mapperRegistry = new MapperRegistry(this);
+  /** 拦截器容器 */
   protected final InterceptorChain interceptorChain = new InterceptorChain();
+  /** 类型处理器容器 */
   protected final TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry(this);
+  /** 类型别名容器 */
   protected final TypeAliasRegistry typeAliasRegistry = new TypeAliasRegistry();
+  /** 语言驱动容器 */
   protected final LanguageDriverRegistry languageRegistry = new LanguageDriverRegistry();
-
+  /** sql集合 */
   protected final Map<String, MappedStatement> mappedStatements = new StrictMap<MappedStatement>("Mapped Statements collection")
       .conflictMessageProducer((savedValue, targetValue) ->
           ". please check " + savedValue.getResource() + " and " + targetValue.getResource());
+  /** 缓存集合 */
   protected final Map<String, Cache> caches = new StrictMap<>("Caches collection");
+  /** 结果集集合 */
   protected final Map<String, ResultMap> resultMaps = new StrictMap<>("Result Maps collection");
+  /** 参数映射集合 */
   protected final Map<String, ParameterMap> parameterMaps = new StrictMap<>("Parameter Maps collection");
+  /** key生成器集合 */
   protected final Map<String, KeyGenerator> keyGenerators = new StrictMap<>("Key Generators collection");
 
+  /** 资源加载过的名称集合 */
   protected final Set<String> loadedResources = new HashSet<>();
+  /** sql片段集合 */
   protected final Map<String, XNode> sqlFragments = new StrictMap<>("XML fragments parsed from previous mappers");
 
+  /** 未完成的sql集合 */
   protected final Collection<XMLStatementBuilder> incompleteStatements = new LinkedList<>();
-  protected final Collection<CacheRefResolver> incompleteCacheRefs = new LinkedList<>();
+  /** 未完成的结果集集合 */
   protected final Collection<ResultMapResolver> incompleteResultMaps = new LinkedList<>();
+  /** 未完成的方法解析集合 */
   protected final Collection<MethodResolver> incompleteMethods = new LinkedList<>();
+  /** 未完成的缓存引用解析器集合 */
+  protected final Collection<CacheRefResolver> incompleteCacheRefs = new LinkedList<>();
 
-  /*
-   * A map holds cache-ref relationship. The key is the namespace that
-   * references a cache bound to another namespace and the value is the
-   * namespace which the actual cache is bound to.
-   */
+  /** 缓存引用集合 */
   protected final Map<String, String> cacheRefMap = new HashMap<>();
 
   public Configuration(Environment environment) {
@@ -306,10 +301,16 @@ public class Configuration {
     this.mapUnderscoreToCamelCase = mapUnderscoreToCamelCase;
   }
 
+  /**
+   * 添加加载资源的记录
+   */
   public void addLoadedResource(String resource) {
     loadedResources.add(resource);
   }
 
+  /**
+   * 加载资源集合检查是否有记录
+   */
   public boolean isResourceLoaded(String resource) {
     return loadedResources.contains(resource);
   }
@@ -387,6 +388,9 @@ public class Configuration {
     this.lazyLoadTriggerMethods = lazyLoadTriggerMethods;
   }
 
+  /**
+   * 使用生成key
+   */
   public boolean isUseGeneratedKeys() {
     return useGeneratedKeys;
   }
@@ -395,10 +399,16 @@ public class Configuration {
     this.useGeneratedKeys = useGeneratedKeys;
   }
 
+  /**
+   * 获取默认的执行器类型
+   */
   public ExecutorType getDefaultExecutorType() {
     return defaultExecutorType;
   }
 
+  /**
+   * 设置默认的执行器类型
+   */
   public void setDefaultExecutorType(ExecutorType defaultExecutorType) {
     this.defaultExecutorType = defaultExecutorType;
   }
@@ -553,13 +563,16 @@ public class Configuration {
   }
 
   /**
-   * @since 3.5.1
+   * 获取语言驱动
    */
   public LanguageDriver getLanguageDriver(Class<? extends LanguageDriver> langClass) {
+    // 如果没有指定语言，使用默认的驱动
     if (langClass == null) {
       return languageRegistry.getDefaultDriver();
     }
+    // 注册语言
     languageRegistry.register(langClass);
+    // 返回驱动
     return languageRegistry.getDriver(langClass);
   }
 
@@ -598,10 +611,15 @@ public class Configuration {
     return newExecutor(transaction, defaultExecutorType);
   }
 
+  /**
+   * 新建执行器
+   */
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+    // 执行器类型
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
     Executor executor;
+    // 根据类型选择具体不同的执行器
     if (ExecutorType.BATCH == executorType) {
       executor = new BatchExecutor(this, transaction);
     } else if (ExecutorType.REUSE == executorType) {
@@ -609,6 +627,7 @@ public class Configuration {
     } else {
       executor = new SimpleExecutor(this, transaction);
     }
+    // 如果支持缓存，添加缓存执行器，这里用了装饰器模式
     if (cacheEnabled) {
       executor = new CachingExecutor(executor);
     }
@@ -616,6 +635,9 @@ public class Configuration {
     return executor;
   }
 
+  /**
+   * 添加key生成器
+   */
   public void addKeyGenerator(String id, KeyGenerator keyGenerator) {
     keyGenerators.put(id, keyGenerator);
   }
@@ -636,6 +658,9 @@ public class Configuration {
     return keyGenerators.containsKey(id);
   }
 
+  /**
+   * 添加缓存
+   */
   public void addCache(Cache cache) {
     caches.put(cache.getId(), cache);
   }
@@ -656,6 +681,7 @@ public class Configuration {
     return caches.containsKey(id);
   }
 
+  // 添加结果集
   public void addResultMap(ResultMap rm) {
     resultMaps.put(rm.getId(), rm);
     checkLocallyForDiscriminatedNestedResultMaps(rm);
@@ -674,10 +700,16 @@ public class Configuration {
     return resultMaps.get(id);
   }
 
+  /**
+   * 是否有结果集
+   */
   public boolean hasResultMap(String id) {
     return resultMaps.containsKey(id);
   }
 
+  /**
+   * 添加参数映射
+   */
   public void addParameterMap(ParameterMap pm) {
     parameterMaps.put(pm.getId(), pm);
   }
@@ -698,6 +730,9 @@ public class Configuration {
     return parameterMaps.containsKey(id);
   }
 
+  /**
+   * 添加sql
+   */
   public void addMappedStatement(MappedStatement ms) {
     mappedStatements.put(ms.getId(), ms);
   }
@@ -724,6 +759,9 @@ public class Configuration {
     return incompleteCacheRefs;
   }
 
+  /**
+   * 添加未完成的缓存引用解析
+   */
   public void addIncompleteCacheRef(CacheRefResolver incompleteCacheRef) {
     incompleteCacheRefs.add(incompleteCacheRef);
   }
@@ -763,22 +801,33 @@ public class Configuration {
     interceptorChain.addInterceptor(interceptor);
   }
 
+  /**
+   * 根据包名，添加映射文件
+   */
   public void addMappers(String packageName, Class<?> superType) {
     mapperRegistry.addMappers(packageName, superType);
   }
-
   public void addMappers(String packageName) {
     mapperRegistry.addMappers(packageName);
   }
 
+  /**
+   * 根据类型添加映射文件
+   */
   public <T> void addMapper(Class<T> type) {
     mapperRegistry.addMapper(type);
   }
 
+  /**
+   * 根据类型获取映射文件
+   */
   public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
     return mapperRegistry.getMapper(type, sqlSession);
   }
 
+  /**
+   * 判断是否有指定类型的映射文件
+   */
   public boolean hasMapper(Class<?> type) {
     return mapperRegistry.hasMapper(type);
   }
@@ -794,6 +843,9 @@ public class Configuration {
     return mappedStatements.containsKey(statementName);
   }
 
+  /**
+   * 添加缓存引用
+   */
   public void addCacheRef(String namespace, String referencedNamespace) {
     cacheRefMap.put(namespace, referencedNamespace);
   }

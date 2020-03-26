@@ -15,20 +15,16 @@
  */
 package org.apache.ibatis.type;
 
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.Configuration;
+
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.apache.ibatis.io.Resources;
-import org.apache.ibatis.session.Configuration;
-
 /**
- * @author Clinton Begin
+ * 未知类型处理器
  */
 public class UnknownTypeHandler extends BaseTypeHandler<Object> {
 

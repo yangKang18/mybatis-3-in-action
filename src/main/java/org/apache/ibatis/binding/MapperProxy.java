@@ -15,6 +15,10 @@
  */
 package org.apache.ibatis.binding;
 
+import org.apache.ibatis.cache.Cache;
+import org.apache.ibatis.reflection.ExceptionUtil;
+import org.apache.ibatis.session.SqlSession;
+
 import java.io.Serializable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -26,12 +30,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import org.apache.ibatis.reflection.ExceptionUtil;
-import org.apache.ibatis.session.SqlSession;
-
 /**
- * @author Clinton Begin
- * @author Eduardo Macarron
+ * mapper代理类
  */
 public class MapperProxy<T> implements InvocationHandler, Serializable {
 
@@ -40,10 +40,16 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
       | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC;
   private static final Constructor<Lookup> lookupConstructor;
   private static final Method privateLookupInMethod;
+  /** sqlSession */
   private final SqlSession sqlSession;
+  /** 接口类型 */
   private final Class<T> mapperInterface;
+  /** 方法缓存 */
   private final Map<Method, MapperMethodInvoker> methodCache;
 
+  /**
+   * 构造函数
+   */
   public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethodInvoker> methodCache) {
     this.sqlSession = sqlSession;
     this.mapperInterface = mapperInterface;
@@ -79,6 +85,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 方法所在类的类型的类型，如果不是object类型，就走方法缓存
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
       } else {
@@ -91,7 +98,9 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
 
   private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
     try {
+      // 方法缓存获取映射方法处理器，如果没有就创建一个新的
       return methodCache.computeIfAbsent(method, m -> {
+        // 默认方法，由于都约定在接口里面写方法，默认是public类型的
         if (m.isDefault()) {
           try {
             if (privateLookupInMethod == null) {
@@ -104,6 +113,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
             throw new RuntimeException(e);
           }
         } else {
+          // 所以会走此方法处理器
           return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
         }
       });
@@ -157,5 +167,12 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     public Object invoke(Object proxy, Method method, Object[] args, SqlSession sqlSession) throws Throwable {
       return methodHandle.bindTo(proxy).invokeWithArguments(args);
     }
+  }
+
+
+  public static void main(String[] args) throws Exception {
+    Method method = Cache.class.getMethod("getId");
+    System.out.println(method.isDefault());
+    System.out.println(method.getDeclaringClass());
   }
 }

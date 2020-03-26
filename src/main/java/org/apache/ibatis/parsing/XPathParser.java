@@ -15,12 +15,11 @@
  */
 package org.apache.ibatis.parsing;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import org.apache.ibatis.builder.BuilderException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.*;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
@@ -29,27 +28,27 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
-import org.apache.ibatis.builder.BuilderException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 /**
- * @author Clinton Begin
- * @author Kazuki Shimizu
+ * XML解析器
  */
 public class XPathParser {
 
+  /** XML文档对象 */
   private final Document document;
+  /** 校验标记 */
   private boolean validation;
+  /** 实体解析器 */
   private EntityResolver entityResolver;
+  /** 配置参数 */
   private Properties variables;
+  /** XPath */
   private XPath xpath;
 
   public XPathParser(String xml) {
@@ -227,6 +226,10 @@ public class XPathParser {
     }
   }
 
+  /**
+   * 构建文档对象
+   * 此处使用XPath方式解析XML文档
+   */
   private Document createDocument(InputSource inputSource) {
     // important: this must only be called AFTER common constructor
     try {
@@ -264,10 +267,17 @@ public class XPathParser {
     }
   }
 
+  /**
+   * 通用构造函数的配置参数
+   */
   private void commonConstructor(boolean validation, Properties variables, EntityResolver entityResolver) {
+    // 设置校验标记
     this.validation = validation;
+    // 设置实体解析器
     this.entityResolver = entityResolver;
+    // 设置配置参数
     this.variables = variables;
+    // 构建XPath
     XPathFactory factory = XPathFactory.newInstance();
     this.xpath = factory.newXPath();
   }

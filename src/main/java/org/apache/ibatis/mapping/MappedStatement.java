@@ -15,10 +15,6 @@
  */
 package org.apache.ibatis.mapping;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
@@ -28,33 +24,60 @@ import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.scripting.LanguageDriver;
 import org.apache.ibatis.session.Configuration;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * @author Clinton Begin
+ * sql
  */
 public final class MappedStatement {
 
+  /** 命名空间 */
   private String resource;
+  /** 配置 */
   private Configuration configuration;
+  /** 唯一ID */
   private String id;
+  /** 获取大小 */
   private Integer fetchSize;
+  /** 超时 */
   private Integer timeout;
+  /** statement类型 */
   private StatementType statementType;
+  /** 结果集类型 */
   private ResultSetType resultSetType;
+  /** sql元素 */
   private SqlSource sqlSource;
+  /** 缓存 */
   private Cache cache;
+  /** 参数集 */
   private ParameterMap parameterMap;
+  /** 结果集 */
   private List<ResultMap> resultMaps;
+  /** 刷新缓存 */
   private boolean flushCacheRequired;
+  /** 使用缓存 */
   private boolean useCache;
+  /** 结果排序 */
   private boolean resultOrdered;
+  /** sql操作类型 */
   private SqlCommandType sqlCommandType;
+  /** key生成器 */
   private KeyGenerator keyGenerator;
+  /** key数组 */
   private String[] keyProperties;
+  /** 列数组 */
   private String[] keyColumns;
+  /** 是否嵌套结果集 */
   private boolean hasNestedResultMaps;
+  /** 数据库ID */
   private String databaseId;
+  /** 日志 */
   private Log statementLog;
+  /** 语言驱动 */
   private LanguageDriver lang;
+  /** 结果集数组 */
   private String[] resultSets;
 
   MappedStatement() {

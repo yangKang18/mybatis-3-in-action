@@ -18,12 +18,13 @@ package org.apache.ibatis.session;
 import java.sql.Connection;
 
 /**
- * Creates an {@link SqlSession} out of a connection or a DataSource
- *
- * @author Clinton Begin
+ * sqlSession工厂
  */
 public interface SqlSessionFactory {
 
+  /**
+   * 打开会话
+   */
   SqlSession openSession();
 
   SqlSession openSession(boolean autoCommit);
@@ -40,6 +41,9 @@ public interface SqlSessionFactory {
 
   SqlSession openSession(ExecutorType execType, Connection connection);
 
+  /**
+   * 获取配置
+   */
   Configuration getConfiguration();
 
 }

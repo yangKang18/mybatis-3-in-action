@@ -15,20 +15,21 @@
  */
 package org.apache.ibatis.cache;
 
+import org.apache.ibatis.reflection.ArrayUtil;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 
-import org.apache.ibatis.reflection.ArrayUtil;
-
 /**
- * @author Clinton Begin
+ * 缓存key
  */
 public class CacheKey implements Cloneable, Serializable {
 
   private static final long serialVersionUID = 1146682552656046210L;
 
+  /** 空缓存key */
   public static final CacheKey NULL_CACHE_KEY = new CacheKey(){
     @Override
     public void update(Object object) {
@@ -40,6 +41,7 @@ public class CacheKey implements Cloneable, Serializable {
     }
   };
 
+  /** 默认倍数与hash码 */
   private static final int DEFAULT_MULTIPLIER = 37;
   private static final int DEFAULT_HASHCODE = 17;
 
@@ -47,8 +49,9 @@ public class CacheKey implements Cloneable, Serializable {
   private int hashcode;
   private long checksum;
   private int count;
-  // 8/21/2017 - Sonarlint flags this as needing to be marked transient.  While true if content is not serializable, this is not always true and thus should not be marked transient.
+  /** 参与key生成计算的元素 */
   private List<Object> updateList;
+
 
   public CacheKey() {
     this.hashcode = DEFAULT_HASHCODE;
@@ -59,6 +62,7 @@ public class CacheKey implements Cloneable, Serializable {
 
   public CacheKey(Object[] objects) {
     this();
+    // 更新key
     updateAll(objects);
   }
 
@@ -66,18 +70,26 @@ public class CacheKey implements Cloneable, Serializable {
     return updateList.size();
   }
 
+  /**
+   * 更新key
+   */
   public void update(Object object) {
+    // 计算基本hashCode
     int baseHashCode = object == null ? 1 : ArrayUtil.hashCode(object);
 
+    // 自增计算数量
     count++;
+    // 计算hash值
     checksum += baseHashCode;
     baseHashCode *= count;
-
     hashcode = multiplier * hashcode + baseHashCode;
-
+    // 添加元素
     updateList.add(object);
   }
 
+  /**
+   * 更新所有key
+   */
   public void updateAll(Object[] objects) {
     for (Object o : objects) {
       update(o);

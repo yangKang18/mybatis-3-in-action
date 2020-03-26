@@ -15,25 +15,21 @@
  */
 package org.apache.ibatis.binding;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.io.ResolverUtil;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 
+import java.util.*;
+
 /**
- * @author Clinton Begin
- * @author Eduardo Macarron
- * @author Lasse Voss
+ * 映射文件容器
  */
 public class MapperRegistry {
 
+  /** 配置类 */
   private final Configuration config;
+  /** 映射文件容器 */
   private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<>();
 
   public MapperRegistry(Configuration config) {
@@ -53,25 +49,34 @@ public class MapperRegistry {
     }
   }
 
+  /**
+   * 是否包含指定类型的映射
+   */
   public <T> boolean hasMapper(Class<T> type) {
     return knownMappers.containsKey(type);
   }
 
+  /**
+   * 根据类型添加映射文件
+   */
   public <T> void addMapper(Class<T> type) {
+    // 映射文件都是接口，不是接口不处理
     if (type.isInterface()) {
+      // 不能有同名接口，也不能重复添加
       if (hasMapper(type)) {
         throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
       }
       boolean loadCompleted = false;
       try {
+        // 容器中添加该类型，和该类型的代理类
         knownMappers.put(type, new MapperProxyFactory<>(type));
-        // It's important that the type is added before the parser is run
-        // otherwise the binding may automatically be attempted by the
-        // mapper parser. If the type is already known, it won't try.
+        // 解析映射文件
         MapperAnnotationBuilder parser = new MapperAnnotationBuilder(config, type);
         parser.parse();
+        // 加载完成
         loadCompleted = true;
       } finally {
+        // 如果加载失败，从容器移除该类型
         if (!loadCompleted) {
           knownMappers.remove(type);
         }
@@ -80,26 +85,28 @@ public class MapperRegistry {
   }
 
   /**
-   * @since 3.2.2
+   * 返回所有的映射文件类型
    */
   public Collection<Class<?>> getMappers() {
     return Collections.unmodifiableCollection(knownMappers.keySet());
   }
 
   /**
-   * @since 3.2.2
+   * 按包和超类接口类型，添加映射文件
    */
   public void addMappers(String packageName, Class<?> superType) {
+    // 解析包下指定超类的子接口
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
     Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
+    // 遍历添加
     for (Class<?> mapperClass : mapperSet) {
       addMapper(mapperClass);
     }
   }
 
   /**
-   * @since 3.2.2
+   * 按包解析所有子文件
    */
   public void addMappers(String packageName) {
     addMappers(packageName, Object.class);

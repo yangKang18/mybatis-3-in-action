@@ -15,30 +15,40 @@
  */
 package org.apache.ibatis.reflection;
 
+import org.apache.ibatis.reflection.invoker.GetFieldInvoker;
+import org.apache.ibatis.reflection.invoker.Invoker;
+import org.apache.ibatis.reflection.invoker.MethodInvoker;
+import org.apache.ibatis.reflection.property.PropertyTokenizer;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
 
-import org.apache.ibatis.reflection.invoker.GetFieldInvoker;
-import org.apache.ibatis.reflection.invoker.Invoker;
-import org.apache.ibatis.reflection.invoker.MethodInvoker;
-import org.apache.ibatis.reflection.property.PropertyTokenizer;
-
 /**
- * @author Clinton Begin
+ * 节码类元数据
+ * 主要分析字节码元数据
  */
 public class MetaClass {
 
+  /** 反射器工厂类 */
   private final ReflectorFactory reflectorFactory;
+  /** 反射器 */
   private final Reflector reflector;
 
+  /**
+   * 构造函数
+   */
   private MetaClass(Class<?> type, ReflectorFactory reflectorFactory) {
     this.reflectorFactory = reflectorFactory;
+    // 根据字节码类型解析获取反射器
     this.reflector = reflectorFactory.findForClass(type);
   }
 
+  /**
+   * 静态方法构造元数据类
+   */
   public static MetaClass forClass(Class<?> type, ReflectorFactory reflectorFactory) {
     return new MetaClass(type, reflectorFactory);
   }
@@ -131,6 +141,10 @@ public class MetaClass {
     return null;
   }
 
+  /**
+   * 元数据指定名称是否有setter方法
+   * 支持解析引用型变量.的方式
+   */
   public boolean hasSetter(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {

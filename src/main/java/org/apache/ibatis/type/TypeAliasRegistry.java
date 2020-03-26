@@ -15,28 +15,20 @@
  */
 package org.apache.ibatis.type;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.ibatis.io.ResolverUtil;
 import org.apache.ibatis.io.Resources;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.ResultSet;
+import java.util.*;
+
 /**
- * @author Clinton Begin
+ * 类型别名容器
  */
 public class TypeAliasRegistry {
 
+  /** 别名-类型容器 */
   private final Map<String, Class<?>> typeAliases = new HashMap<>();
 
   public TypeAliasRegistry() {
@@ -100,16 +92,18 @@ public class TypeAliasRegistry {
     registerAlias("ResultSet", ResultSet.class);
   }
 
-  @SuppressWarnings("unchecked")
-  // throws class cast exception as well if types cannot be assigned
+  /**
+   * 根据别名获取类型
+   */
   public <T> Class<T> resolveAlias(String string) {
     try {
       if (string == null) {
         return null;
       }
-      // issue #748
+      // 统一小写比较
       String key = string.toLowerCase(Locale.ENGLISH);
       Class<T> value;
+      // 容器如果含有记录则返回，没有则使用加载器加载
       if (typeAliases.containsKey(key)) {
         value = (Class<T>) typeAliases.get(key);
       } else {
@@ -121,6 +115,9 @@ public class TypeAliasRegistry {
     }
   }
 
+  /**
+   * 按包名注册类型
+   */
   public void registerAliases(String packageName) {
     registerAliases(packageName, Object.class);
   }
@@ -140,6 +137,7 @@ public class TypeAliasRegistry {
 
   public void registerAlias(Class<?> type) {
     String alias = type.getSimpleName();
+    // 检查类型上是否有Alias注解
     Alias aliasAnnotation = type.getAnnotation(Alias.class);
     if (aliasAnnotation != null) {
       alias = aliasAnnotation.value();
@@ -151,7 +149,7 @@ public class TypeAliasRegistry {
     if (alias == null) {
       throw new TypeException("The parameter alias cannot be null");
     }
-    // issue #748
+    // 统一按小写注册
     String key = alias.toLowerCase(Locale.ENGLISH);
     if (typeAliases.containsKey(key) && typeAliases.get(key) != null && !typeAliases.get(key).equals(value)) {
       throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + typeAliases.get(key).getName() + "'.");

@@ -15,35 +15,50 @@
  */
 package org.apache.ibatis.mapping;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 /**
- * @author Clinton Begin
+ * 结果映射
  */
 public class ResultMapping {
 
+  /** 配置 */
   private Configuration configuration;
+  /** 属性值 */
   private String property;
+  /** 列名称 */
   private String column;
+  /** java类型 */
   private Class<?> javaType;
+  /** jdbc类型 */
   private JdbcType jdbcType;
+  /** 类型处理器 */
   private TypeHandler<?> typeHandler;
+  /** 内嵌结果集ID */
   private String nestedResultMapId;
+  /** 内嵌查询ID */
   private String nestedQueryId;
+  /** 非空列集合 */
   private Set<String> notNullColumns;
+  /** 列前缀 */
   private String columnPrefix;
+  /** 结果标记 */
   private List<ResultFlag> flags;
+  /** 复合结果映射 */
   private List<ResultMapping> composites;
+  /** 结果集 */
   private String resultSet;
+  /** 外键 */
   private String foreignColumn;
+  /** 懒加载标记 */
   private boolean lazy;
 
   ResultMapping() {

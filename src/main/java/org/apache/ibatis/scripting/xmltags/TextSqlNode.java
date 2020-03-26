@@ -15,18 +15,20 @@
  */
 package org.apache.ibatis.scripting.xmltags;
 
-import java.util.regex.Pattern;
-
 import org.apache.ibatis.parsing.GenericTokenParser;
 import org.apache.ibatis.parsing.TokenHandler;
 import org.apache.ibatis.scripting.ScriptingException;
 import org.apache.ibatis.type.SimpleTypeRegistry;
 
+import java.util.regex.Pattern;
+
 /**
- * @author Clinton Begin
+ * 文本节点
  */
 public class TextSqlNode implements SqlNode {
+  /** sql文本 */
   private final String text;
+  /** 注入过滤器 */
   private final Pattern injectionFilter;
 
   public TextSqlNode(String text) {
@@ -38,8 +40,13 @@ public class TextSqlNode implements SqlNode {
     this.injectionFilter = injectionFilter;
   }
 
+  /**
+   * 是否含有${}的占位符
+   */
   public boolean isDynamic() {
+    // 动态标记占位符解析
     DynamicCheckerTokenParser checker = new DynamicCheckerTokenParser();
+    // 创建解析器
     GenericTokenParser parser = createParser(checker);
     parser.parse(text);
     return checker.isDynamic();
@@ -52,6 +59,9 @@ public class TextSqlNode implements SqlNode {
     return true;
   }
 
+  /**
+   * 创建解析器
+   */
   private GenericTokenParser createParser(TokenHandler handler) {
     return new GenericTokenParser("${", "}", handler);
   }
@@ -87,6 +97,9 @@ public class TextSqlNode implements SqlNode {
     }
   }
 
+  /**
+   * 动态标记处理
+   */
   private static class DynamicCheckerTokenParser implements TokenHandler {
 
     private boolean isDynamic;

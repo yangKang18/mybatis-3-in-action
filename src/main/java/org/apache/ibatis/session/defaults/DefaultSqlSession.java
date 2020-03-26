@@ -15,15 +15,6 @@
  */
 package org.apache.ibatis.session.defaults;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.binding.BindingException;
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.exceptions.ExceptionFactory;
@@ -39,19 +30,25 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.*;
+
 /**
- * The default implementation for {@link SqlSession}.
- * Note that this class is not Thread-Safe.
- *
- * @author Clinton Begin
+ * 默认sql会话
  */
 public class DefaultSqlSession implements SqlSession {
 
+  /** 配置 */
   private final Configuration configuration;
+  /** 执行器 */
   private final Executor executor;
-
+  /** 自动提交标记 */
   private final boolean autoCommit;
+  /** 脏 */
   private boolean dirty;
+  /** 游标集合 */
   private List<Cursor<?>> cursorList;
 
   public DefaultSqlSession(Configuration configuration, Executor executor, boolean autoCommit) {
@@ -96,6 +93,7 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds) {
     final List<? extends V> list = selectList(statement, parameter, rowBounds);
+    // map解析结果
     final DefaultMapResultHandler<K, V> mapResultHandler = new DefaultMapResultHandler<>(mapKey,
             configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
     final DefaultResultContext<V> context = new DefaultResultContext<>();
@@ -143,7 +141,9 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
     try {
+      // 查询sql
       MappedStatement ms = configuration.getMappedStatement(statement);
+      // 执行器查询
       return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
@@ -305,6 +305,9 @@ public class DefaultSqlSession implements SqlSession {
     executor.clearLocalCache();
   }
 
+  /**
+   * 注册游标
+   */
   private <T> void registerCursor(Cursor<T> cursor) {
     if (cursorList == null) {
       cursorList = new ArrayList<>();
@@ -316,6 +319,9 @@ public class DefaultSqlSession implements SqlSession {
     return (!autoCommit && dirty) || force;
   }
 
+  /**
+   * 包装集合
+   */
   private Object wrapCollection(final Object object) {
     if (object instanceof Collection) {
       StrictMap<Object> map = new StrictMap<>();
